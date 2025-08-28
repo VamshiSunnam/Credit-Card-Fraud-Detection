@@ -33,28 +33,29 @@ def load_data(path):
 def preprocess_data(df):
     """Scales the 'Amount' and 'Time' features and returns X, y, and the scaler."""
     if df is None:
-        return None, None, None
+        return None, None
 
     print("\n--- Preprocessing Data ---")
-    # Create a new DataFrame to avoid modifying the original one in place
     processed_df = df.copy()
     
-    # StandardScaler will subtract the mean and scale to unit variance.
     scaler = StandardScaler()
-
-    # Scale the 'Amount' and 'Time' columns
-    processed_df['scaled_amount'] = scaler.fit_transform(processed_df['Amount'].values.reshape(-1, 1))
-    processed_df['scaled_time'] = scaler.fit_transform(processed_df['Time'].values.reshape(-1, 1))
-
+    
+    # CORRECTED: Fit the scaler on 'Amount' and 'Time' together and transform them
+    # The order here ['Amount', 'Time'] is important and must be consistent.
+    processed_df[['scaled_amount', 'scaled_time']] = scaler.fit_transform(processed_df[['Amount', 'Time']])
+    
     # Drop the original 'Time' and 'Amount' columns
     processed_df.drop(['Time', 'Amount'], axis=1, inplace=True)
     
     print("'Amount' and 'Time' columns scaled.")
-    # Save the scaler object for use in the dashboard
     joblib.dump(scaler, SCALER_PATH)
     print(f"Scaler saved to {SCALER_PATH}")
 
-    # Define features (X) and target (y)
+    # Reorder columns to ensure 'Class' is at the end before splitting, for consistency
+    if 'Class' in processed_df.columns:
+        cols = [col for col in processed_df.columns if col != 'Class']
+        processed_df = processed_df[cols + ['Class']]
+
     X = processed_df.drop('Class', axis=1)
     y = processed_df['Class']
 
